@@ -11,8 +11,6 @@
 
 **Система мониторинга солнечных панелей в реальном времени**
 
-[Демонстрация](#-скриншоты) • [Установка](#-установка) • [API](#-api) • [Тестирование](#-тестирование)
-
 </div>
 
 ---
@@ -109,7 +107,7 @@
 ### 1. Клонирование репозитория
 
 ```bash
-git clone https://github.com/your-username/helios-monitoring.git
+git clone https://github.com/pollyzaver/helios-monitoring.git
 cd helios-monitoring
 ```
 

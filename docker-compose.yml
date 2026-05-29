@@ -1,0 +1,24 @@
+services:
+  backend:
+    build: ./backend
+    container_name: helios-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - backend_data:/app/data
+    environment:
+      - DATABASE_URL=sqlite:///./data/helios.db
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: helios-frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  backend_data:

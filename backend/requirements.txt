@@ -1,3 +1,17 @@
 fastapi
 uvicorn
+sqlalchemy
 httpx
+python-jose
+passlib
+bcrypt
+python-multipart
+pyjwt
+email-validator
+pydantic
+pydantic-settings
+websockets
+pytest
+pytest-asyncio
+pytest-cov
+requests
