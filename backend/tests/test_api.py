@@ -2,6 +2,17 @@ import requests
 import time
 
 BASE_URL = "http://localhost:8000/api"
+ADMIN_TOKEN = None
+
+def get_admin_token():
+    global ADMIN_TOKEN
+    if ADMIN_TOKEN:
+        return ADMIN_TOKEN
+    data = {"email": "admin@helios.com", "password": "admin123"}
+    response = requests.post(f"{BASE_URL}/auth/login", json=data)
+    if response.status_code == 200:
+        ADMIN_TOKEN = response.json()["access_token"]
+    return ADMIN_TOKEN
 
 class TestAPI:
     
@@ -55,12 +66,9 @@ class TestAPI:
     
     def test_get_profile_with_token(self):
         """Тест получения профиля с токеном"""
-        # Сначала получаем токен
-        login_data = {"email": "admin@helios.com", "password": "admin123"}
-        response = requests.post(f"{BASE_URL}/auth/login", json=login_data)
-        token = response.json()["access_token"]
+        token = get_admin_token()
+        assert token is not None
         headers = {"Authorization": f"Bearer {token}"}
-        
         response = requests.get(f"{BASE_URL}/auth/me", headers=headers)
         assert response.status_code == 200
         assert "email" in response.json()
@@ -68,11 +76,8 @@ class TestAPI:
     
     def test_update_profile(self):
         """Тест обновления профиля"""
-        login_data = {"email": "admin@helios.com", "password": "admin123"}
-        response = requests.post(f"{BASE_URL}/auth/login", json=login_data)
-        token = response.json()["access_token"]
+        token = get_admin_token()
         headers = {"Authorization": f"Bearer {token}"}
-        
         update_data = {"full_name": "Обновлённое Имя"}
         response = requests.put(f"{BASE_URL}/auth/profile", json=update_data, headers=headers)
         assert response.status_code == 200
@@ -80,11 +85,16 @@ class TestAPI:
     
     def test_disconnect_datalogger(self):
         """Тест отключения Data Logger"""
-        login_data = {"email": "admin@helios.com", "password": "admin123"}
-        response = requests.post(f"{BASE_URL}/auth/login", json=login_data)
-        token = response.json()["access_token"]
+        token = get_admin_token()
         headers = {"Authorization": f"Bearer {token}"}
-        
         response = requests.post(f"{BASE_URL}/disconnect", headers=headers)
         assert response.status_code == 200
         print("✅ Отключение Data Logger работает")
+    
+    def test_connect_datalogger(self):
+        """Тест подключения Data Logger"""
+        token = get_admin_token()
+        headers = {"Authorization": f"Bearer {token}"}
+        response = requests.post(f"{BASE_URL}/connect", headers=headers)
+        assert response.status_code == 200
+        print("✅ Подключение Data Logger работает")

@@ -1,61 +1,88 @@
 """
-Тесты базы данных (демонстрационные)
-
-В реальном проекте тесты запускаются с настроенным PYTHONPATH.
-Здесь представлен код тестов для иллюстрации в отчёте.
+Тесты базы данных (реальные вызовы)
 """
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+import hashlib
+from app.database import SessionLocal, init_db
+from app.user_service import create_user, get_user_by_email, simple_hash, update_user_profile
+from app.measurement_service import save_measurement, get_daily_energy
 
 class TestDatabase:
     
-    def test_user_creation_logic(self):
-        """Проверка логики создания пользователя"""
-        # Эмуляция создания пользователя
-        user_data = {
-            "id": 1,
-            "email": "test@example.com",
-            "full_name": "Тестовый Пользователь",
-            "role": "user"
-        }
-        assert user_data["id"] == 1
-        assert user_data["email"] == "test@example.com"
-        assert user_data["role"] == "user"
-        print("✅ Логика создания пользователя корректна")
+    def setup_method(self):
+        """Подготовка перед каждым тестом"""
+        init_db()
+        self.db = SessionLocal()
     
-    def test_password_hashing_logic(self):
-        """Проверка логики хеширования пароля"""
-        import hashlib
-        password = "secret123"
-        salt = "helios_salt_"
-        hashed = hashlib.sha256(f"{salt}{password}".encode()).hexdigest()
+    def teardown_method(self):
+        """Очистка после каждого теста"""
+        self.db.close()
+    
+    def test_create_user(self):
+        """Проверка создания пользователя в БД"""
+        email = "dbtest@example.com"
+        user = create_user(self.db, email, "DB Test User", "test123")
+        assert user.id is not None
+        assert user.email == email
+        assert user.role == "user"
+        print(f"✅ Пользователь создан: ID={user.id}")
+    
+    def test_get_user_by_email(self):
+        """Проверка поиска пользователя по email"""
+        email = "findme@example.com"
+        create_user(self.db, email, "Find Me", "pass123")
+        user = get_user_by_email(self.db, email)
+        assert user is not None
+        assert user.email == email
+        print("✅ Поиск пользователя по email работает")
+    
+    def test_save_and_get_measurement(self):
+        """Проверка сохранения и получения измерения"""
+        user = create_user(self.db, "measure@example.com", "Measure User", "pass123")
         
+        from datetime import datetime
+        from app.measurement_service import save_measurement
+        measurement = save_measurement(
+            self.db, user.id, 1, 250.5, 35.2, "normal", 0.0625
+        )
+        
+        assert measurement.id is not None
+        assert measurement.power_watts == 250.5
+        assert measurement.temperature_celsius == 35.2
+        print("✅ Сохранение измерения в БД корректно")
+    
+    def test_daily_energy_calculation(self):
+        """Проверка расчёта дневной выработки"""
+        user = create_user(self.db, "energy@example.com", "Energy User", "pass123")
+        
+        from datetime import datetime, timedelta
+        from app.measurement_service import save_measurement
+        
+        # Сохраняем несколько измерений
+        save_measurement(self.db, user.id, 1, 400, 35, "normal", 0.1)
+        save_measurement(self.db, user.id, 1, 380, 35, "normal", 0.095)
+        save_measurement(self.db, user.id, 1, 350, 35, "normal", 0.0875)
+        
+        daily_energy = get_daily_energy(self.db, user.id)
+        assert daily_energy > 0
+        print(f"✅ Дневная выработка: {daily_energy} кВт·ч")
+    
+    def test_update_user_profile(self):
+        """Проверка обновления профиля пользователя"""
+        user = create_user(self.db, "update@example.com", "Original Name", "pass123")
+        
+        updated = update_user_profile(self.db, user.id, full_name="Updated Name")
+        assert updated is not None
+        assert updated.full_name == "Updated Name"
+        print("✅ Обновление профиля работает")
+    
+    def test_password_hashing(self):
+        """Проверка хеширования пароля"""
+        password = "secret123"
+        hashed = simple_hash(password)
         assert hashed != password
         assert len(hashed) == 64
-        print("✅ Логика хеширования пароля корректна")
-    
-    def test_measurement_save_logic(self):
-        """Проверка логики сохранения измерения"""
-        measurement = {
-            "id": 1,
-            "user_id": 1,
-            "panel_id": 1,
-            "power_watts": 250.5,
-            "temperature_celsius": 35.2,
-            "status": "normal"
-        }
-        assert measurement["power_watts"] == 250.5
-        assert measurement["temperature_celsius"] == 35.2
-        assert measurement["status"] == "normal"
-        print("✅ Логика сохранения измерения корректна")
-    
-    def test_alert_save_logic(self):
-        """Проверка логики сохранения алерта"""
-        alert = {
-            "id": 1,
-            "panel_id": 1,
-            "type": "overheat",
-            "severity": "warning",
-            "message": "Температура панели превышает норму"
-        }
-        assert alert["type"] == "overheat"
-        assert alert["severity"] == "warning"
-        print("✅ Логика сохранения алерта корректна")
+        print("✅ Хеширование пароля корректно")
