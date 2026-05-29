@@ -52,3 +52,39 @@ class TestAPI:
         response = requests.get(f"{BASE_URL}/auth/me")
         assert response.status_code == 401
         print("✅ Доступ без токена запрещён")
+    
+    def test_get_profile_with_token(self):
+        """Тест получения профиля с токеном"""
+        # Сначала получаем токен
+        login_data = {"email": "admin@helios.com", "password": "admin123"}
+        response = requests.post(f"{BASE_URL}/auth/login", json=login_data)
+        token = response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        response = requests.get(f"{BASE_URL}/auth/me", headers=headers)
+        assert response.status_code == 200
+        assert "email" in response.json()
+        print("✅ Получение профиля с токеном работает")
+    
+    def test_update_profile(self):
+        """Тест обновления профиля"""
+        login_data = {"email": "admin@helios.com", "password": "admin123"}
+        response = requests.post(f"{BASE_URL}/auth/login", json=login_data)
+        token = response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        update_data = {"full_name": "Обновлённое Имя"}
+        response = requests.put(f"{BASE_URL}/auth/profile", json=update_data, headers=headers)
+        assert response.status_code == 200
+        print("✅ Обновление профиля работает")
+    
+    def test_disconnect_datalogger(self):
+        """Тест отключения Data Logger"""
+        login_data = {"email": "admin@helios.com", "password": "admin123"}
+        response = requests.post(f"{BASE_URL}/auth/login", json=login_data)
+        token = response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        response = requests.post(f"{BASE_URL}/disconnect", headers=headers)
+        assert response.status_code == 200
+        print("✅ Отключение Data Logger работает")
